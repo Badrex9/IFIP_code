@@ -104,25 +104,29 @@ def transfo(X, source_ip, dest_ip, dest_port):
     i=0
     j=0
     for raw in tqdm(X):
+        if i==20:
+            break
         sip = source_ip[i]
         dip = dest_ip[i]
         dp = dest_port[i]
-
         nouveau_couple = hash_ip_port(sip, dip, dp)
 
         index = binary_search_hash(hashes, nouveau_couple)
         if index != -1:
             nb_sample = count_sample[index]
             if nb_sample < d_historique:
-                pattern = np.hstack((raw[:, np.newaxis], flows[index]))[:, :nb_sample]
+                pattern = np.hstack((raw[:, np.newaxis], flows[index]))[:, :nb_sample+1]
                 num_repeats = d_historique // pattern.shape[1] 
                 remaining_cols = d_historique % pattern.shape[1]  # Nombre de colonnes restantes à ajouter
                 repeated_matrix = np.tile(pattern, (1, num_repeats))  
                 if remaining_cols > 0:
-                    new_mat = np.hstack((repeated_matrix, pattern[:, :remaining_cols])) 
+                    new_mat = np.hstack((repeated_matrix, pattern[:, :remaining_cols]))
+                else:
+                    new_mat = repeated_matrix
             else:
                 new_mat = np.hstack((raw[:, np.newaxis], flows[index]))[:, :d_historique]
             flows[index] = new_mat  #décalage
+            count_sample[index] += 1
             data_input.append(new_mat) #Ajout à l'input
         else:
             new_mat = np.tile(raw, (d_historique, 1)).T  #Créer une matrice avec 20 fois le même vecteur
